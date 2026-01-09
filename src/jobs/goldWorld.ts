@@ -1,68 +1,74 @@
 import { supabase } from '../supabase.js';
-import {
-  WORLD_GOLD_MARKET_CODE,
-  WORLD_GOLD_INSTRUMENTS,
-  USD_CODE,
-  UNIT_OUNCE
-} from '../config.js';
-import { idByCode } from '../utils/ids.js';
 import { log, logError } from '../utils/logger.js';
 import { fetchGoldPricesFromHellolinker } from './goldHellolinker.js';
-import { withChangeDetection } from '../utils/priceChange.js';
 
-const marketIdByCode = idByCode('market');
-const instrumentIdByCode = idByCode('instrument');
-const currencyIdByCode = idByCode('currency');
-const unitIdByCode = idByCode('unit');
+const TROY_OUNCE_GRAMS = 31.1035;
+const KYAT_THA_GRAMS = 16.32932532;
+const VALUE_EPSILON = 1e-6;
+
+function isSameValue(a: number | null, b: number | null): boolean {
+  if (a === null || b === null) return false;
+  return Math.abs(a - b) <= VALUE_EPSILON;
+}
+
+function computeFxUsdMmk(world24: number, mm24: number): number | null {
+  if (!world24 || !mm24) return null;
+  const usdPerGram = world24 / TROY_OUNCE_GRAMS;
+  const usdPerKyat = usdPerGram * KYAT_THA_GRAMS;
+  if (usdPerKyat <= 0) return null;
+  return mm24 / usdPerKyat;
+}
 
 export async function runGoldWorldJob() {
-  log('[GOLD_WORLD] Job start');
+  log('[GOLD_BASE] Job start');
 
-  const [marketId, usdId, unitId] = await Promise.all([
-    marketIdByCode(WORLD_GOLD_MARKET_CODE),
-    currencyIdByCode(USD_CODE),
-    unitIdByCode(UNIT_OUNCE)
-  ]);
+  const { world, mm } = await fetchGoldPricesFromHellolinker();
+  const world24 = world[24];
+  const mm24 = mm[24];
 
-  const { world } = await fetchGoldPricesFromHellolinker();
-  const now = new Date().toISOString();
-  const rows: any[] = [];
-
-  for (const code of WORLD_GOLD_INSTRUMENTS) {
-    const match = code.match(/GOLD_(\d+)K/);
-    const karat = match ? Number(match[1]) : NaN;
-    const value = Number.isNaN(karat) ? undefined : world[karat];
-    if (!value) {
-      logError('[GOLD_WORLD] No data for code', code);
-      continue;
-    }
-    const instrumentId = await instrumentIdByCode(code);
-
-    const row = await withChangeDetection({
-      instrument_id: instrumentId,
-      market_id: marketId,
-      location_id: null,
-      ts: now,
-      price_type: 'MID',
-      unit_id: unitId,
-      currency_id: usdId,
-      value,
-      source: 'HELLOLINKER_GOLD_SCRAPE'
-    });
-
-    if (row) rows.push(row);
-  }
-
-  if (!rows.length) {
-    log('[GOLD_WORLD] No rows to insert');
+  if (!world24) {
+    logError('[GOLD_BASE] Missing 24K world price');
     return;
   }
 
-  const { error } = await supabase.from('instrument_price').insert(rows);
+  if (!mm24) {
+    logError('[GOLD_BASE] Missing 24K MMK price');
+    return;
+  }
+
+  const fxUsdMmk = computeFxUsdMmk(world24, mm24);
+  if (!fxUsdMmk) {
+    logError('[GOLD_BASE] Failed to compute FX rate');
+    return;
+  }
+
+  const latest = await supabase
+    .from('gold_price_base')
+    .select('xau_usd_oz, fx_usd_mmk')
+    .order('ts', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (
+    latest.data &&
+    isSameValue(Number(latest.data.xau_usd_oz), world24) &&
+    isSameValue(Number(latest.data.fx_usd_mmk), fxUsdMmk)
+  ) {
+    log('[GOLD_BASE] No changes detected');
+    return;
+  }
+
+  const { error } = await supabase.from('gold_price_base').insert({
+    ts: new Date().toISOString(),
+    xau_usd_oz: world24,
+    fx_usd_mmk: fxUsdMmk,
+    source: 'HELLOLINKER_GOLD_SCRAPE'
+  });
+
   if (error) {
-    logError('[GOLD_WORLD] Insert error', error.message);
+    logError('[GOLD_BASE] Insert error', error.message);
     throw error;
   }
 
-  log(`[GOLD_WORLD] Inserted ${rows.length} rows`);
+  log('[GOLD_BASE] Inserted base gold price');
 }

@@ -5,7 +5,6 @@ import { log, logError } from './utils/logger.js';
 import { runFxMarketJob } from './jobs/fxMarket.js';
 import { runFxBanksJob } from './jobs/fxBanks.js';
 import { runGoldWorldJob } from './jobs/goldWorld.js';
-import { runGoldMyanmarJob } from './jobs/goldMyanmar.js';
 import { runGoldHistoryJob } from './jobs/goldHistory.js';
 import { runFxHistoryJob } from './jobs/fxHistory.js';
 import { runFuelPricesJob } from './jobs/fuelPrices.js';
@@ -41,12 +40,6 @@ async function runAllJobs() {
     await runGoldWorldJob();
   } catch (err) {
     logError('World gold job failed', err);
-  }
-
-  try {
-    await runGoldMyanmarJob();
-  } catch (err) {
-    logError('Myanmar gold job failed', err);
   }
 
   try {
