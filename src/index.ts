@@ -73,6 +73,11 @@ app.get('/health', (_req: Request, res: Response) => {
   res.json({ ok: true, time: new Date().toISOString() });
 });
 
+// basic root response for platform checks
+app.get('/', (_req: Request, res: Response) => {
+  res.json({ ok: true, service: 'hellolinker-ingest' });
+});
+
 // manual trigger if you want
 app.post('/run-now', async (_req: Request, res: Response) => {
   try {
