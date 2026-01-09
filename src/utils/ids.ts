@@ -2,6 +2,8 @@ import { supabase } from '../supabase.js';
 import { logError } from './logger.js';
 
 const cache = new Map<string, number>();
+const missingCache = new Set<string>();
+const duplicateCache = new Set<string>();
 
 async function idByCodeRaw(
   table: 'instrument' | 'market' | 'currency' | 'unit' | 'location',
@@ -16,15 +18,30 @@ async function idByCodeRaw(
     .select('id', { count: 'exact' })
     .eq(by, codeOrSlug)
     .order('id', { ascending: true })
-    .limit(1);
+    .limit(5);
 
-  if (error || !data?.length) {
-    logError(`idBy${by} failed`, { table, codeOrSlug, error: error?.message });
+  if (error) {
+    logError(`idBy${by} failed`, { table, codeOrSlug, error: error.message });
     throw new Error(`Cannot find ${table}.${by} = ${codeOrSlug}`);
   }
 
-  if (count && count > 1) {
-    logError(`idBy${by} multiple matches`, { table, codeOrSlug, count });
+  if (!data?.length) {
+    if (!missingCache.has(key)) {
+      missingCache.add(key);
+      logError(`idBy${by} not found`, { table, codeOrSlug });
+    }
+    throw new Error(`Cannot find ${table}.${by} = ${codeOrSlug}`);
+  }
+
+  if (count && count > 1 && !duplicateCache.has(key)) {
+    duplicateCache.add(key);
+    logError(`idBy${by} multiple matches; using lowest id`, {
+      table,
+      codeOrSlug,
+      count,
+      chosenId: data[0].id,
+      sampleIds: data.map(row => row.id)
+    });
   }
 
   const id = data[0].id;
