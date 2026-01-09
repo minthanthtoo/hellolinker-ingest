@@ -20,10 +20,12 @@ BEGIN
     SELECT id FROM public.instrument WHERE type_id = gold_type_id
   );
 
-  DELETE FROM public.gold_spec
-  WHERE instrument_id IN (
-    SELECT id FROM public.instrument WHERE type_id = gold_type_id
-  );
+  IF to_regclass('public.gold_spec') IS NOT NULL THEN
+    DELETE FROM public.gold_spec
+    WHERE instrument_id IN (
+      SELECT id FROM public.instrument WHERE type_id = gold_type_id
+    );
+  END IF;
 
   DELETE FROM public.instrument
   WHERE type_id = gold_type_id;
