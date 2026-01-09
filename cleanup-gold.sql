@@ -1,4 +1,4 @@
--- Optional cleanup: remove gold rows from instrument_price and disable gold instruments.
+-- Optional cleanup: remove gold rows from instrument_price and drop legacy gold entities.
 -- Run this only if you have switched to gold_price_base/gold_price_history_base.
 
 DO $$
@@ -25,7 +25,14 @@ BEGIN
     SELECT id FROM public.instrument WHERE type_id = gold_type_id
   );
 
-  UPDATE public.instrument
-  SET is_active = false
+  DELETE FROM public.instrument
   WHERE type_id = gold_type_id;
+
+  DELETE FROM public.instrument_type
+  WHERE id = gold_type_id
+    AND NOT EXISTS (
+      SELECT 1 FROM public.instrument WHERE type_id = gold_type_id
+    );
+
+  DROP TABLE IF EXISTS public.gold_spec;
 END $$;
