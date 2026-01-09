@@ -1,0 +1,20 @@
+{
+  "name": "hellolinker-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.0",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.6.0"
+  }
+}
