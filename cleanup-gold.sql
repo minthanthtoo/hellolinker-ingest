@@ -35,4 +35,5 @@ BEGIN
     );
 
   DROP TABLE IF EXISTS public.gold_spec;
+  DROP TABLE IF EXISTS public.gold_constants;
 END $$;

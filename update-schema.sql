@@ -39,15 +39,6 @@ ORDER BY instrument_id,
          ts DESC;
 
 -- Gold base tables (lean storage)
-CREATE TABLE IF NOT EXISTS public.gold_constants (
-  id smallint PRIMARY KEY DEFAULT 1,
-  troy_ounce_grams numeric NOT NULL,
-  kyat_tha_grams numeric NOT NULL
-);
-
-INSERT INTO public.gold_constants (id, troy_ounce_grams, kyat_tha_grams)
-VALUES (1, 31.1035, 16.32932532)
-ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS public.gold_price_base (
   id bigserial PRIMARY KEY,
@@ -84,11 +75,10 @@ SELECT
   CASE
     WHEN u.unit = 'USD_OZ' THEN b.xau_usd_oz * (k.karat / 24.0)
     WHEN u.unit = 'MMK_KYAT_THA' AND b.fx_usd_mmk IS NOT NULL THEN
-      (b.xau_usd_oz / c.troy_ounce_grams) * c.kyat_tha_grams * b.fx_usd_mmk * (k.karat / 24.0)
+      (b.xau_usd_oz / 31.1035) * 16.32932532 * b.fx_usd_mmk * (k.karat / 24.0)
   END AS value,
   b.source
 FROM public.gold_price_base b
-CROSS JOIN public.gold_constants c
 CROSS JOIN (VALUES (24),(23),(22),(21),(20),(18),(16),(14)) AS k(karat)
 CROSS JOIN (VALUES ('USD_OZ'),('MMK_KYAT_THA')) AS u(unit);
 
@@ -110,18 +100,17 @@ SELECT
     WHEN u.unit = 'MMK_KYAT_THA' THEN
       CASE p.price_type
         WHEN 'OPEN' THEN
-          (b.xau_usd_oz_open / c.troy_ounce_grams) * c.kyat_tha_grams * b.fx_usd_mmk_open
+          (b.xau_usd_oz_open / 31.1035) * 16.32932532 * b.fx_usd_mmk_open
         WHEN 'HIGH' THEN
-          (b.xau_usd_oz_high / c.troy_ounce_grams) * c.kyat_tha_grams * b.fx_usd_mmk_high
+          (b.xau_usd_oz_high / 31.1035) * 16.32932532 * b.fx_usd_mmk_high
         WHEN 'LOW' THEN
-          (b.xau_usd_oz_low / c.troy_ounce_grams) * c.kyat_tha_grams * b.fx_usd_mmk_low
+          (b.xau_usd_oz_low / 31.1035) * 16.32932532 * b.fx_usd_mmk_low
         WHEN 'CLOSE' THEN
-          (b.xau_usd_oz_close / c.troy_ounce_grams) * c.kyat_tha_grams * b.fx_usd_mmk_close
+          (b.xau_usd_oz_close / 31.1035) * 16.32932532 * b.fx_usd_mmk_close
       END * (k.karat / 24.0)
   END AS value,
   b.source
 FROM public.gold_price_history_base b
-CROSS JOIN public.gold_constants c
 CROSS JOIN (VALUES (24),(23),(22),(21),(20),(18),(16),(14)) AS k(karat)
 CROSS JOIN (VALUES ('USD_OZ'),('MMK_KYAT_THA')) AS u(unit)
 CROSS JOIN (VALUES ('OPEN'),('HIGH'),('LOW'),('CLOSE')) AS p(price_type);
@@ -136,7 +125,6 @@ ALTER TABLE public.instrument       ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gold_spec        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fuel_spec        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.instrument_price ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.gold_constants   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gold_price_base  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.gold_price_history_base ENABLE ROW LEVEL SECURITY;
 
@@ -195,12 +183,6 @@ BEGIN
     SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'instrument_price' AND policyname = 'Public read instrument_price'
   ) THEN
     CREATE POLICY "Public read instrument_price" ON public.instrument_price FOR SELECT USING (true);
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'gold_constants' AND policyname = 'Public read gold_constants'
-  ) THEN
-    CREATE POLICY "Public read gold_constants" ON public.gold_constants FOR SELECT USING (true);
   END IF;
 
   IF NOT EXISTS (
