@@ -43,6 +43,346 @@ INSERT INTO market (code, name, type, website) VALUES
   ('MCB', 'MCB Bank', 'BANK', NULL)
 ON CONFLICT (code) DO NOTHING;
 
+-- Locations: fuel townships (slug derived from filterCity township)
+DO $$
+DECLARE
+  has_name boolean;
+  has_code boolean;
+  has_type boolean;
+  default_type text;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'location'
+      AND column_name = 'name'
+  ) INTO has_name;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'location'
+      AND column_name = 'code'
+  ) INTO has_code;
+
+  SELECT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'location'
+      AND column_name = 'type'
+  ) INTO has_type;
+
+  IF has_type THEN
+    SELECT type::text INTO default_type
+    FROM location
+    WHERE type IS NOT NULL
+    LIMIT 1;
+
+    IF default_type IS NULL THEN
+      default_type := 'TOWNSHIP';
+    END IF;
+  END IF;
+
+  IF has_name AND has_code AND has_type THEN
+    INSERT INTO location (code, slug, name, type)
+    SELECT v.slug, v.slug, v.name, default_type
+    FROM (
+      VALUES
+        ('yangon', 'yangon'),
+        ('hpa-yar-gyi', 'hpa yar gyi'),
+        ('letpadan', 'letpadan'),
+        ('waw', 'waw'),
+        ('gyobingauk', 'gyobingauk'),
+        ('shwedaung', 'shwedaung'),
+        ('pyoun-tazar', 'pyoun tazar'),
+        ('pyuu-115-miles', 'pyuu (115 miles)'),
+        ('taungoo-1-2', 'taungoo-1/-2'),
+        ('lewe', 'lewe'),
+        ('naypyitaw-1-2-3-4', 'naypyitaw-1/-2/-3/-4'),
+        ('tapkone', 'tapkone'),
+        ('nyaungdon', 'nyaungdon'),
+        ('dhanuphyu-1-2', 'dhanuphyu -1/-2'),
+        ('kyaunggon-maubin-kyaiklat', 'kyaunggon/ maubin/ kyaiklat'),
+        ('pathein-1-2-dedaye-hninthada', 'pathein - 1 /-2 / dedaye/ hninthada'),
+        ('laputta', 'laputta'),
+        ('hpa-an-1-2', 'hpa-an -1/-2'),
+        ('thar-ma-nya', 'thar ma nya'),
+        ('mawlamyaing-1-2-moketama', 'mawlamyaing-1/-2 / moketama'),
+        ('paung', 'paung'),
+        ('thadon-theinseik', 'thadon / theinseik'),
+        ('belin', 'belin'),
+        ('kyaikhto', 'kyaikhto'),
+        ('mandalay', 'mandalay'),
+        ('kyaukse', 'kyaukse'),
+        ('wondwin-meiktila-1-2-3', 'wondwin / meiktila-1/-2/-3'),
+        ('kyaukpadaung', 'kyaukpadaung'),
+        ('tharse-kywetapsone', 'tharse (kywetapsone)'),
+        ('nyaung-u-1', 'nyaung u -1'),
+        ('nyaung-u-2-pakokku-bridge', 'nyaung u -2(pakokku bridge)'),
+        ('myingyan-1-2', 'myingyan - 1/ -2'),
+        ('magwe-1-2', 'magwe -1/-2'),
+        ('minbu', 'minbu'),
+        ('yaynanchaung-minhla', 'yaynanchaung/ minhla'),
+        ('chauk', 'chauk'),
+        ('aungpan', 'aungpan'),
+        ('pindaya', 'pindaya'),
+        ('taunggyi-kangyi-taung-lay-lone-shwenyaung', 'taunggyi kangyi/ taung lay lone / shwenyaung'),
+        ('yapsauk', 'yapsauk')
+    ) AS v(slug, name)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM location l WHERE l.slug = v.slug
+    );
+  ELSIF has_name AND has_code THEN
+    INSERT INTO location (code, slug, name)
+    SELECT v.slug, v.slug, v.name
+    FROM (
+      VALUES
+        ('yangon', 'yangon'),
+        ('hpa-yar-gyi', 'hpa yar gyi'),
+        ('letpadan', 'letpadan'),
+        ('waw', 'waw'),
+        ('gyobingauk', 'gyobingauk'),
+        ('shwedaung', 'shwedaung'),
+        ('pyoun-tazar', 'pyoun tazar'),
+        ('pyuu-115-miles', 'pyuu (115 miles)'),
+        ('taungoo-1-2', 'taungoo-1/-2'),
+        ('lewe', 'lewe'),
+        ('naypyitaw-1-2-3-4', 'naypyitaw-1/-2/-3/-4'),
+        ('tapkone', 'tapkone'),
+        ('nyaungdon', 'nyaungdon'),
+        ('dhanuphyu-1-2', 'dhanuphyu -1/-2'),
+        ('kyaunggon-maubin-kyaiklat', 'kyaunggon/ maubin/ kyaiklat'),
+        ('pathein-1-2-dedaye-hninthada', 'pathein - 1 /-2 / dedaye/ hninthada'),
+        ('laputta', 'laputta'),
+        ('hpa-an-1-2', 'hpa-an -1/-2'),
+        ('thar-ma-nya', 'thar ma nya'),
+        ('mawlamyaing-1-2-moketama', 'mawlamyaing-1/-2 / moketama'),
+        ('paung', 'paung'),
+        ('thadon-theinseik', 'thadon / theinseik'),
+        ('belin', 'belin'),
+        ('kyaikhto', 'kyaikhto'),
+        ('mandalay', 'mandalay'),
+        ('kyaukse', 'kyaukse'),
+        ('wondwin-meiktila-1-2-3', 'wondwin / meiktila-1/-2/-3'),
+        ('kyaukpadaung', 'kyaukpadaung'),
+        ('tharse-kywetapsone', 'tharse (kywetapsone)'),
+        ('nyaung-u-1', 'nyaung u -1'),
+        ('nyaung-u-2-pakokku-bridge', 'nyaung u -2(pakokku bridge)'),
+        ('myingyan-1-2', 'myingyan - 1/ -2'),
+        ('magwe-1-2', 'magwe -1/-2'),
+        ('minbu', 'minbu'),
+        ('yaynanchaung-minhla', 'yaynanchaung/ minhla'),
+        ('chauk', 'chauk'),
+        ('aungpan', 'aungpan'),
+        ('pindaya', 'pindaya'),
+        ('taunggyi-kangyi-taung-lay-lone-shwenyaung', 'taunggyi kangyi/ taung lay lone / shwenyaung'),
+        ('yapsauk', 'yapsauk')
+    ) AS v(slug, name)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM location l WHERE l.slug = v.slug
+    );
+  ELSIF has_name AND has_type THEN
+    INSERT INTO location (slug, name, type)
+    SELECT v.slug, v.name, default_type
+    FROM (
+      VALUES
+        ('yangon', 'yangon'),
+        ('hpa-yar-gyi', 'hpa yar gyi'),
+        ('letpadan', 'letpadan'),
+        ('waw', 'waw'),
+        ('gyobingauk', 'gyobingauk'),
+        ('shwedaung', 'shwedaung'),
+        ('pyoun-tazar', 'pyoun tazar'),
+        ('pyuu-115-miles', 'pyuu (115 miles)'),
+        ('taungoo-1-2', 'taungoo-1/-2'),
+        ('lewe', 'lewe'),
+        ('naypyitaw-1-2-3-4', 'naypyitaw-1/-2/-3/-4'),
+        ('tapkone', 'tapkone'),
+        ('nyaungdon', 'nyaungdon'),
+        ('dhanuphyu-1-2', 'dhanuphyu -1/-2'),
+        ('kyaunggon-maubin-kyaiklat', 'kyaunggon/ maubin/ kyaiklat'),
+        ('pathein-1-2-dedaye-hninthada', 'pathein - 1 /-2 / dedaye/ hninthada'),
+        ('laputta', 'laputta'),
+        ('hpa-an-1-2', 'hpa-an -1/-2'),
+        ('thar-ma-nya', 'thar ma nya'),
+        ('mawlamyaing-1-2-moketama', 'mawlamyaing-1/-2 / moketama'),
+        ('paung', 'paung'),
+        ('thadon-theinseik', 'thadon / theinseik'),
+        ('belin', 'belin'),
+        ('kyaikhto', 'kyaikhto'),
+        ('mandalay', 'mandalay'),
+        ('kyaukse', 'kyaukse'),
+        ('wondwin-meiktila-1-2-3', 'wondwin / meiktila-1/-2/-3'),
+        ('kyaukpadaung', 'kyaukpadaung'),
+        ('tharse-kywetapsone', 'tharse (kywetapsone)'),
+        ('nyaung-u-1', 'nyaung u -1'),
+        ('nyaung-u-2-pakokku-bridge', 'nyaung u -2(pakokku bridge)'),
+        ('myingyan-1-2', 'myingyan - 1/ -2'),
+        ('magwe-1-2', 'magwe -1/-2'),
+        ('minbu', 'minbu'),
+        ('yaynanchaung-minhla', 'yaynanchaung/ minhla'),
+        ('chauk', 'chauk'),
+        ('aungpan', 'aungpan'),
+        ('pindaya', 'pindaya'),
+        ('taunggyi-kangyi-taung-lay-lone-shwenyaung', 'taunggyi kangyi/ taung lay lone / shwenyaung'),
+        ('yapsauk', 'yapsauk')
+    ) AS v(slug, name)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM location l WHERE l.slug = v.slug
+    );
+  ELSIF has_name THEN
+    INSERT INTO location (slug, name)
+    SELECT v.slug, v.name
+    FROM (
+      VALUES
+        ('yangon', 'yangon'),
+        ('hpa-yar-gyi', 'hpa yar gyi'),
+        ('letpadan', 'letpadan'),
+        ('waw', 'waw'),
+        ('gyobingauk', 'gyobingauk'),
+        ('shwedaung', 'shwedaung'),
+        ('pyoun-tazar', 'pyoun tazar'),
+        ('pyuu-115-miles', 'pyuu (115 miles)'),
+        ('taungoo-1-2', 'taungoo-1/-2'),
+        ('lewe', 'lewe'),
+        ('naypyitaw-1-2-3-4', 'naypyitaw-1/-2/-3/-4'),
+        ('tapkone', 'tapkone'),
+        ('nyaungdon', 'nyaungdon'),
+        ('dhanuphyu-1-2', 'dhanuphyu -1/-2'),
+        ('kyaunggon-maubin-kyaiklat', 'kyaunggon/ maubin/ kyaiklat'),
+        ('pathein-1-2-dedaye-hninthada', 'pathein - 1 /-2 / dedaye/ hninthada'),
+        ('laputta', 'laputta'),
+        ('hpa-an-1-2', 'hpa-an -1/-2'),
+        ('thar-ma-nya', 'thar ma nya'),
+        ('mawlamyaing-1-2-moketama', 'mawlamyaing-1/-2 / moketama'),
+        ('paung', 'paung'),
+        ('thadon-theinseik', 'thadon / theinseik'),
+        ('belin', 'belin'),
+        ('kyaikhto', 'kyaikhto'),
+        ('mandalay', 'mandalay'),
+        ('kyaukse', 'kyaukse'),
+        ('wondwin-meiktila-1-2-3', 'wondwin / meiktila-1/-2/-3'),
+        ('kyaukpadaung', 'kyaukpadaung'),
+        ('tharse-kywetapsone', 'tharse (kywetapsone)'),
+        ('nyaung-u-1', 'nyaung u -1'),
+        ('nyaung-u-2-pakokku-bridge', 'nyaung u -2(pakokku bridge)'),
+        ('myingyan-1-2', 'myingyan - 1/ -2'),
+        ('magwe-1-2', 'magwe -1/-2'),
+        ('minbu', 'minbu'),
+        ('yaynanchaung-minhla', 'yaynanchaung/ minhla'),
+        ('chauk', 'chauk'),
+        ('aungpan', 'aungpan'),
+        ('pindaya', 'pindaya'),
+        ('taunggyi-kangyi-taung-lay-lone-shwenyaung', 'taunggyi kangyi/ taung lay lone / shwenyaung'),
+        ('yapsauk', 'yapsauk')
+    ) AS v(slug, name)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM location l WHERE l.slug = v.slug
+    );
+  ELSIF has_type THEN
+    INSERT INTO location (slug, type)
+    SELECT v.slug, default_type
+    FROM (
+      VALUES
+        ('yangon', 'yangon'),
+        ('hpa-yar-gyi', 'hpa yar gyi'),
+        ('letpadan', 'letpadan'),
+        ('waw', 'waw'),
+        ('gyobingauk', 'gyobingauk'),
+        ('shwedaung', 'shwedaung'),
+        ('pyoun-tazar', 'pyoun tazar'),
+        ('pyuu-115-miles', 'pyuu (115 miles)'),
+        ('taungoo-1-2', 'taungoo-1/-2'),
+        ('lewe', 'lewe'),
+        ('naypyitaw-1-2-3-4', 'naypyitaw-1/-2/-3/-4'),
+        ('tapkone', 'tapkone'),
+        ('nyaungdon', 'nyaungdon'),
+        ('dhanuphyu-1-2', 'dhanuphyu -1/-2'),
+        ('kyaunggon-maubin-kyaiklat', 'kyaunggon/ maubin/ kyaiklat'),
+        ('pathein-1-2-dedaye-hninthada', 'pathein - 1 /-2 / dedaye/ hninthada'),
+        ('laputta', 'laputta'),
+        ('hpa-an-1-2', 'hpa-an -1/-2'),
+        ('thar-ma-nya', 'thar ma nya'),
+        ('mawlamyaing-1-2-moketama', 'mawlamyaing-1/-2 / moketama'),
+        ('paung', 'paung'),
+        ('thadon-theinseik', 'thadon / theinseik'),
+        ('belin', 'belin'),
+        ('kyaikhto', 'kyaikhto'),
+        ('mandalay', 'mandalay'),
+        ('kyaukse', 'kyaukse'),
+        ('wondwin-meiktila-1-2-3', 'wondwin / meiktila-1/-2/-3'),
+        ('kyaukpadaung', 'kyaukpadaung'),
+        ('tharse-kywetapsone', 'tharse (kywetapsone)'),
+        ('nyaung-u-1', 'nyaung u -1'),
+        ('nyaung-u-2-pakokku-bridge', 'nyaung u -2(pakokku bridge)'),
+        ('myingyan-1-2', 'myingyan - 1/ -2'),
+        ('magwe-1-2', 'magwe -1/-2'),
+        ('minbu', 'minbu'),
+        ('yaynanchaung-minhla', 'yaynanchaung/ minhla'),
+        ('chauk', 'chauk'),
+        ('aungpan', 'aungpan'),
+        ('pindaya', 'pindaya'),
+        ('taunggyi-kangyi-taung-lay-lone-shwenyaung', 'taunggyi kangyi/ taung lay lone / shwenyaung'),
+        ('yapsauk', 'yapsauk')
+    ) AS v(slug, name)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM location l WHERE l.slug = v.slug
+    );
+  ELSE
+    INSERT INTO location (slug)
+    SELECT v.slug
+    FROM (
+      VALUES
+        ('yangon', 'yangon'),
+        ('hpa-yar-gyi', 'hpa yar gyi'),
+        ('letpadan', 'letpadan'),
+        ('waw', 'waw'),
+        ('gyobingauk', 'gyobingauk'),
+        ('shwedaung', 'shwedaung'),
+        ('pyoun-tazar', 'pyoun tazar'),
+        ('pyuu-115-miles', 'pyuu (115 miles)'),
+        ('taungoo-1-2', 'taungoo-1/-2'),
+        ('lewe', 'lewe'),
+        ('naypyitaw-1-2-3-4', 'naypyitaw-1/-2/-3/-4'),
+        ('tapkone', 'tapkone'),
+        ('nyaungdon', 'nyaungdon'),
+        ('dhanuphyu-1-2', 'dhanuphyu -1/-2'),
+        ('kyaunggon-maubin-kyaiklat', 'kyaunggon/ maubin/ kyaiklat'),
+        ('pathein-1-2-dedaye-hninthada', 'pathein - 1 /-2 / dedaye/ hninthada'),
+        ('laputta', 'laputta'),
+        ('hpa-an-1-2', 'hpa-an -1/-2'),
+        ('thar-ma-nya', 'thar ma nya'),
+        ('mawlamyaing-1-2-moketama', 'mawlamyaing-1/-2 / moketama'),
+        ('paung', 'paung'),
+        ('thadon-theinseik', 'thadon / theinseik'),
+        ('belin', 'belin'),
+        ('kyaikhto', 'kyaikhto'),
+        ('mandalay', 'mandalay'),
+        ('kyaukse', 'kyaukse'),
+        ('wondwin-meiktila-1-2-3', 'wondwin / meiktila-1/-2/-3'),
+        ('kyaukpadaung', 'kyaukpadaung'),
+        ('tharse-kywetapsone', 'tharse (kywetapsone)'),
+        ('nyaung-u-1', 'nyaung u -1'),
+        ('nyaung-u-2-pakokku-bridge', 'nyaung u -2(pakokku bridge)'),
+        ('myingyan-1-2', 'myingyan - 1/ -2'),
+        ('magwe-1-2', 'magwe -1/-2'),
+        ('minbu', 'minbu'),
+        ('yaynanchaung-minhla', 'yaynanchaung/ minhla'),
+        ('chauk', 'chauk'),
+        ('aungpan', 'aungpan'),
+        ('pindaya', 'pindaya'),
+        ('taunggyi-kangyi-taung-lay-lone-shwenyaung', 'taunggyi kangyi/ taung lay lone / shwenyaung'),
+        ('yapsauk', 'yapsauk')
+    ) AS v(slug, name)
+    WHERE NOT EXISTS (
+      SELECT 1 FROM location l WHERE l.slug = v.slug
+    );
+  END IF;
+END $$;
+
 -- Instruments: FX pairs
 INSERT INTO instrument (type_id, code, name, base_currency_id, quote_currency_id, metadata)
 VALUES

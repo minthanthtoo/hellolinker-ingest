@@ -23,14 +23,20 @@ type PriceRow = {
 };
 
 export async function withChangeDetection(row: PriceRow): Promise<PriceRow | null> {
-  const { data, error } = await supabase
+  const latestQuery = supabase
     .from('instrument_price_latest')
     .select('value, ts')
     .eq('instrument_id', row.instrument_id)
     .eq('market_id', row.market_id)
-    .eq('price_type', row.price_type)
-    .is('location_id', row.location_id)
-    .maybeSingle();
+    .eq('price_type', row.price_type);
+
+  if (row.location_id === null) {
+    latestQuery.is('location_id', null);
+  } else {
+    latestQuery.eq('location_id', row.location_id);
+  }
+
+  const { data, error } = await latestQuery.maybeSingle();
 
   if (error) {
     logError('[PRICE] Latest fetch failed', error.message);

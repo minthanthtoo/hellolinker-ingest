@@ -114,6 +114,9 @@ export async function fetchFuelPrices(filterCity: string): Promise<FuelPrices> {
 }
 
 export function mapFuelInstrument(name: string): string | null {
+  if (name.includes('ad blocker')) {
+    return null;
+  }
   switch (name) {
     case 'diesel':
       return 'FUEL_DIESEL';
@@ -124,13 +127,12 @@ export function mapFuelInstrument(name: string): string | null {
     case 'octane 95':
       return 'FUEL_OCTANE_95';
     default:
-      logError('[FUEL] Unknown fuel name', name);
       return null;
   }
 }
 
 export function townshipSlugFromFilter(filterCity: string): string {
   const parts = filterCity.split('/');
-  const township = parts[1] ? parts[1].trim() : filterCity.trim();
+  const township = parts.length > 1 ? parts.slice(1).join('/').trim() : filterCity.trim();
   return toSlug(township);
 }
